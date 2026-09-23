@@ -1,0 +1,27 @@
+name: Validate
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse JavaScript and Python sources
+        run: |
+          python - <<'PYTHON'
+          import ast, pathlib, subprocess
+          for path in pathlib.Path('.').rglob('*'):
+              if any(part in ('.git', 'node_modules', '.pio') for part in path.parts):
+                  continue
+              if path.suffix == '.py':
+                  ast.parse(path.read_text(), filename=str(path))
+              elif path.suffix in ('.js', '.mjs', '.cjs'):
+                  subprocess.run(['node', '--check', str(path)], check=True)
+          PYTHON
